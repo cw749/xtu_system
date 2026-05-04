@@ -9,27 +9,25 @@ public class ApiResponse<T> {
     private T data;
     private LocalDateTime timestamp;
 
-    public ApiResponse() {
-        this.timestamp = LocalDateTime.now();
-    }
-
-    public ApiResponse(int code, String message, T data) {
-        this.code = code;
-        this.message = message;
-        this.data = data;
-        this.timestamp = LocalDateTime.now();
-    }
-
     public static <T> ApiResponse<T> success(T data) {
-        return new ApiResponse<>(200, "OK", data);
+        return success("操作成功", data);
     }
 
     public static <T> ApiResponse<T> success(String message, T data) {
-        return new ApiResponse<>(200, message, data);
+        ApiResponse<T> response = new ApiResponse<>();
+        response.setCode(200);
+        response.setMessage(message);
+        response.setData(data);
+        response.setTimestamp(LocalDateTime.now());
+        return response;
     }
 
     public static <T> ApiResponse<T> failure(int code, String message) {
-        return new ApiResponse<>(code, message, null);
+        ApiResponse<T> response = new ApiResponse<>();
+        response.setCode(code);
+        response.setMessage(message);
+        response.setTimestamp(LocalDateTime.now());
+        return response;
     }
 
     public int getCode() {
