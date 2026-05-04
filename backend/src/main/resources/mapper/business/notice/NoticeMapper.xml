@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xtu.system.modules.business.notice.mapper.NoticeMapper">
+
+    <resultMap id="NoticeEntityMap" type="com.xtu.system.modules.business.notice.entity.NoticeEntity">
+        <id column="id" property="id"/>
+        <result column="title" property="title"/>
+        <result column="notice_type" property="noticeType"/>
+        <result column="content" property="content"/>
+        <result column="publish_status" property="publishStatus"/>
+        <result column="pinned" property="pinned"/>
+        <result column="publisher_id" property="publisherId"/>
+        <result column="publisher_name" property="publisherName"/>
+        <result column="publish_time" property="publishTime"/>
+        <result column="created_by" property="createdBy"/>
+        <result column="updated_by" property="updatedBy"/>
+    </resultMap>
+
+    <resultMap id="NoticePageItemMap" type="com.xtu.system.modules.business.notice.vo.NoticePageItemVO">
+        <id column="id" property="id"/>
+        <result column="title" property="title"/>
+        <result column="notice_type" property="noticeType"/>
+        <result column="publish_status" property="publishStatus"/>
+        <result column="pinned" property="pinned"/>
+        <result column="publisher_name" property="publisherName"/>
+        <result column="publish_time" property="publishTime"/>
+        <result column="attachment_count" property="attachmentCount"/>
+    </resultMap>
+
+    <resultMap id="NoticeDetailMap" type="com.xtu.system.modules.business.notice.vo.NoticeDetailVO" extends="NoticePageItemMap">
+        <result column="content" property="content"/>
+    </resultMap>
+
+    <sql id="NoticeBaseColumns">
+        n.id,
+        n.title,
+        n.notice_type,
+        n.content,
+        n.publish_status,
+        n.pinned,
+        n.publisher_id,
+        u.real_name AS publisher_name,
+        n.publish_time,
+        n.created_by,
+        n.updated_by
+    </sql>
+
+    <sql id="NoticeWhere">
+        n.deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND n.title LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+        <if test="noticeType != null and noticeType != ''">
+            AND n.notice_type = #{noticeType}
+        </if>
+        <if test="publishStatus != null">
+            AND n.publish_status = #{publishStatus}
+        </if>
+    </sql>
+
+    <select id="selectNoticePage" resultMap="NoticePageItemMap">
+        SELECT
+            n.id,
+            n.title,
+            n.notice_type,
+            n.publish_status,
+            n.pinned,
+            u.real_name AS publisher_name,
+            n.publish_time,
+            (
+                SELECT COUNT(1)
+                FROM biz_attachment ba
+                WHERE ba.deleted = 0 AND ba.biz_type = 'notice' AND ba.biz_id = n.id
+            ) AS attachment_count
+        FROM biz_notice n
+        LEFT JOIN sys_user u ON u.id = n.publisher_id AND u.deleted = 0
+        WHERE
+            <include refid="NoticeWhere"/>
+        ORDER BY n.pinned DESC, n.publish_time DESC, n.id DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countNoticePage" resultType="long">
+        SELECT COUNT(1)
+        FROM biz_notice n
+        WHERE
+            <include refid="NoticeWhere"/>
+    </select>
+
+    <select id="selectNoticeDetailById" resultMap="NoticeDetailMap">
+        SELECT
+            <include refid="NoticeBaseColumns"/>
+        FROM biz_notice n
+        LEFT JOIN sys_user u ON u.id = n.publisher_id AND u.deleted = 0
+        WHERE n.id = #{id} AND n.deleted = 0
+    </select>
+
+    <select id="selectNoticeEntityById" resultMap="NoticeEntityMap">
+        SELECT
+            <include refid="NoticeBaseColumns"/>
+        FROM biz_notice n
+        LEFT JOIN sys_user u ON u.id = n.publisher_id AND u.deleted = 0
+        WHERE n.id = #{id} AND n.deleted = 0
+    </select>
+
+    <insert id="insertNotice" parameterType="com.xtu.system.modules.business.notice.entity.NoticeEntity" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO biz_notice (
+            title,
+            notice_type,
+            content,
+            publish_status,
+            pinned,
+            publisher_id,
+            publish_time,
+            created_by,
+            updated_by,
+            deleted,
+            version
+        ) VALUES (
+            #{title},
+            #{noticeType},
+            #{content},
+            #{publishStatus},
+            #{pinned},
+            #{publisherId},
+            CASE WHEN #{publishStatus} = 1 THEN NOW() ELSE NULL END,
+            #{createdBy},
+            #{updatedBy},
+            0,
+            0
+        )
+    </insert>
+
+    <update id="updateNotice" parameterType="com.xtu.system.modules.business.notice.entity.NoticeEntity">
+        UPDATE biz_notice
+        SET
+            title = #{title},
+            notice_type = #{noticeType},
+            content = #{content},
+            publish_status = #{publishStatus},
+            pinned = #{pinned},
+            publish_time = CASE
+                WHEN #{publishStatus} = 1 AND publish_time IS NULL THEN NOW()
+                WHEN #{publishStatus} = 0 THEN NULL
+                ELSE publish_time
+            END,
+            updated_by = #{updatedBy},
+            updated_at = NOW(),
+            version = version + 1
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="logicDeleteNotice">
+        UPDATE biz_notice
+        SET
+            deleted = 1,
+            updated_by = #{updatedBy},
+            updated_at = NOW(),
+            version = version + 1
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="updatePublishStatus">
+        UPDATE biz_notice
+        SET
+            publish_status = #{publishStatus},
+            publish_time = CASE WHEN #{publishStatus} = 1 THEN NOW() ELSE NULL END,
+            updated_by = #{updatedBy},
+            updated_at = NOW(),
+            version = version + 1
+        WHERE id = #{id} AND deleted = 0
+    </update>
+</mapper>

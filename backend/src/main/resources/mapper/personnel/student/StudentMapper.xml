@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xtu.system.modules.personnel.student.mapper.StudentMapper">
+
+    <resultMap id="StudentEntityMap" type="com.xtu.system.modules.personnel.student.entity.StudentEntity">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="student_no" property="studentNo"/>
+        <result column="student_name" property="studentName"/>
+        <result column="gender" property="gender"/>
+        <result column="dept_id" property="deptId"/>
+        <result column="dept_name" property="deptName"/>
+        <result column="major_name" property="majorName"/>
+        <result column="grade_year" property="gradeYear"/>
+        <result column="class_name" property="className"/>
+        <result column="phone" property="phone"/>
+        <result column="email" property="email"/>
+        <result column="status" property="status"/>
+        <result column="remark" property="remark"/>
+        <result column="created_by" property="createdBy"/>
+        <result column="updated_by" property="updatedBy"/>
+    </resultMap>
+
+    <resultMap id="StudentPageItemMap" type="com.xtu.system.modules.personnel.student.vo.StudentPageItemVO">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="student_no" property="studentNo"/>
+        <result column="student_name" property="studentName"/>
+        <result column="gender" property="gender"/>
+        <result column="dept_id" property="deptId"/>
+        <result column="dept_name" property="deptName"/>
+        <result column="major_name" property="majorName"/>
+        <result column="grade_year" property="gradeYear"/>
+        <result column="class_name" property="className"/>
+        <result column="phone" property="phone"/>
+        <result column="email" property="email"/>
+        <result column="status" property="status"/>
+        <result column="account_username" property="accountUsername"/>
+        <result column="account_status" property="accountStatus"/>
+    </resultMap>
+
+    <resultMap id="StudentDetailMap" type="com.xtu.system.modules.personnel.student.vo.StudentDetailVO" extends="StudentPageItemMap">
+        <result column="remark" property="remark"/>
+    </resultMap>
+
+    <sql id="StudentBaseColumns">
+        s.id,
+        s.user_id,
+        s.student_no,
+        s.student_name,
+        s.gender,
+        s.dept_id,
+        d.dept_name,
+        s.major_name,
+        s.grade_year,
+        s.class_name,
+        s.phone,
+        s.email,
+        s.status,
+        s.remark,
+        s.created_by,
+        s.updated_by
+    </sql>
+
+    <sql id="StudentWhere">
+        s.deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND (s.student_no LIKE CONCAT('%', #{keyword}, '%') OR s.student_name LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="deptId != null">
+            AND s.dept_id = #{deptId}
+        </if>
+        <if test="gradeYear != null">
+            AND s.grade_year = #{gradeYear}
+        </if>
+        <if test="status != null">
+            AND s.status = #{status}
+        </if>
+    </sql>
+
+    <select id="selectStudentPage" resultMap="StudentPageItemMap">
+        SELECT
+            s.id,
+            s.user_id,
+            s.student_no,
+            s.student_name,
+            s.gender,
+            s.dept_id,
+            d.dept_name,
+            s.major_name,
+            s.grade_year,
+            s.class_name,
+            s.phone,
+            s.email,
+            s.status,
+            u.username AS account_username,
+            u.status AS account_status
+        FROM biz_student s
+        LEFT JOIN sys_department d ON d.id = s.dept_id AND d.deleted = 0
+        LEFT JOIN sys_user u ON u.id = s.user_id AND u.deleted = 0
+        WHERE
+            <include refid="StudentWhere"/>
+        ORDER BY s.id DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="selectStudentExportList" resultMap="StudentPageItemMap">
+        SELECT
+            s.id,
+            s.user_id,
+            s.student_no,
+            s.student_name,
+            s.gender,
+            s.dept_id,
+            d.dept_name,
+            s.major_name,
+            s.grade_year,
+            s.class_name,
+            s.phone,
+            s.email,
+            s.status,
+            u.username AS account_username,
+            u.status AS account_status
+        FROM biz_student s
+        LEFT JOIN sys_department d ON d.id = s.dept_id AND d.deleted = 0
+        LEFT JOIN sys_user u ON u.id = s.user_id AND u.deleted = 0
+        WHERE
+            <include refid="StudentWhere"/>
+        ORDER BY s.id DESC
+    </select>
+
+    <select id="countStudentPage" resultType="long">
+        SELECT COUNT(1)
+        FROM biz_student s
+        WHERE
+            <include refid="StudentWhere"/>
+    </select>
+
+    <select id="selectStudentDetailById" resultMap="StudentDetailMap">
+        SELECT
+            <include refid="StudentBaseColumns"/>,
+            u.username AS account_username,
+            u.status AS account_status
+        FROM biz_student s
+        LEFT JOIN sys_department d ON d.id = s.dept_id AND d.deleted = 0
+        LEFT JOIN sys_user u ON u.id = s.user_id AND u.deleted = 0
+        WHERE s.id = #{id} AND s.deleted = 0
+    </select>
+
+    <select id="selectStudentEntityById" resultMap="StudentEntityMap">
+        SELECT
+            <include refid="StudentBaseColumns"/>
+        FROM biz_student s
+        LEFT JOIN sys_department d ON d.id = s.dept_id AND d.deleted = 0
+        WHERE s.id = #{id} AND s.deleted = 0
+    </select>
+
+    <select id="selectStudentEntityByNo" resultMap="StudentEntityMap">
+        SELECT
+            <include refid="StudentBaseColumns"/>
+        FROM biz_student s
+        LEFT JOIN sys_department d ON d.id = s.dept_id AND d.deleted = 0
+        WHERE s.student_no = #{studentNo} AND s.deleted = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectStudentEntityByUserId" resultMap="StudentEntityMap">
+        SELECT
+            <include refid="StudentBaseColumns"/>
+        FROM biz_student s
+        LEFT JOIN sys_department d ON d.id = s.dept_id AND d.deleted = 0
+        WHERE s.user_id = #{userId} AND s.deleted = 0
+        LIMIT 1
+    </select>
+
+    <insert id="insertStudent" parameterType="com.xtu.system.modules.personnel.student.entity.StudentEntity" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO biz_student (
+            user_id,
+            student_no,
+            student_name,
+            gender,
+            dept_id,
+            major_name,
+            grade_year,
+            class_name,
+            phone,
+            email,
+            status,
+            remark,
+            created_by,
+            updated_by,
+            deleted,
+            version
+        ) VALUES (
+            #{userId},
+            #{studentNo},
+            #{studentName},
+            #{gender},
+            #{deptId},
+            #{majorName},
+            #{gradeYear},
+            #{className},
+            #{phone},
+            #{email},
+            #{status},
+            #{remark},
+            #{createdBy},
+            #{updatedBy},
+            0,
+            0
+        )
+    </insert>
+
+    <update id="updateStudent" parameterType="com.xtu.system.modules.personnel.student.entity.StudentEntity">
+        UPDATE biz_student
+        SET
+            user_id = #{userId},
+            student_no = #{studentNo},
+            student_name = #{studentName},
+            gender = #{gender},
+            dept_id = #{deptId},
+            major_name = #{majorName},
+            grade_year = #{gradeYear},
+            class_name = #{className},
+            phone = #{phone},
+            email = #{email},
+            status = #{status},
+            remark = #{remark},
+            updated_by = #{updatedBy},
+            updated_at = NOW(),
+            version = version + 1
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="logicDeleteStudent">
+        UPDATE biz_student
+        SET
+            deleted = 1,
+            updated_by = #{updatedBy},
+            updated_at = NOW(),
+            version = version + 1
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="clearUserBindingByUserId">
+        UPDATE biz_student
+        SET
+            user_id = NULL,
+            updated_by = #{updatedBy},
+            updated_at = NOW(),
+            version = version + 1
+        WHERE user_id = #{userId} AND deleted = 0
+    </update>
+</mapper>

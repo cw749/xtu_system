@@ -1,0 +1,358 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xtu.system.modules.business.application.mapper.ApplicationMapper">
+
+    <resultMap id="ApplicationEntityMap" type="com.xtu.system.modules.business.application.entity.ApplicationEntity">
+        <id column="id" property="id"/>
+        <result column="applicant_user_id" property="applicantUserId"/>
+        <result column="applicant_name" property="applicantName"/>
+        <result column="application_type" property="applicationType"/>
+        <result column="target_name" property="targetName"/>
+        <result column="reason" property="reason"/>
+        <result column="status" property="status"/>
+        <result column="submit_time" property="submitTime"/>
+        <result column="process_time" property="processTime"/>
+        <result column="approver_user_id" property="approverUserId"/>
+        <result column="approver_name" property="approverName"/>
+        <result column="review_remark" property="reviewRemark"/>
+        <result column="created_by" property="createdBy"/>
+        <result column="updated_by" property="updatedBy"/>
+    </resultMap>
+
+    <resultMap id="ApplicationPageItemMap" type="com.xtu.system.modules.business.application.vo.ApplicationPageItemVO">
+        <id column="id" property="id"/>
+        <result column="applicant_user_id" property="applicantUserId"/>
+        <result column="applicant_name" property="applicantName"/>
+        <result column="application_type" property="applicationType"/>
+        <result column="target_name" property="targetName"/>
+        <result column="status" property="status"/>
+        <result column="submit_time" property="submitTime"/>
+        <result column="process_time" property="processTime"/>
+        <result column="approver_user_id" property="approverUserId"/>
+        <result column="approver_name" property="approverName"/>
+        <result column="attachment_count" property="attachmentCount"/>
+    </resultMap>
+
+    <resultMap id="ApplicationDetailMap" type="com.xtu.system.modules.business.application.vo.ApplicationDetailVO" extends="ApplicationPageItemMap">
+        <result column="reason" property="reason"/>
+        <result column="review_remark" property="reviewRemark"/>
+    </resultMap>
+
+    <resultMap id="ApplicationRecordMap" type="com.xtu.system.modules.business.application.vo.ApplicationRecordVO">
+        <id column="id" property="id"/>
+        <result column="step_no" property="stepNo"/>
+        <result column="approver_id" property="approverId"/>
+        <result column="approver_name" property="approverName"/>
+        <result column="action_type" property="actionType"/>
+        <result column="action_name" property="actionName"/>
+        <result column="comment_text" property="commentText"/>
+        <result column="before_status" property="beforeStatus"/>
+        <result column="after_status" property="afterStatus"/>
+        <result column="acted_at" property="actedAt"/>
+        <result column="approver_name" property="operatorName"/>
+        <result column="acted_at" property="operateTime"/>
+        <result column="comment_text" property="remark"/>
+    </resultMap>
+
+    <resultMap id="WorkflowTaskMap" type="com.xtu.system.modules.workflow.vo.WorkflowTaskItemVO">
+        <id column="record_id" property="recordId"/>
+        <result column="application_id" property="applicationId"/>
+        <result column="applicant_name" property="applicantName"/>
+        <result column="application_type" property="applicationType"/>
+        <result column="target_name" property="targetName"/>
+        <result column="status" property="status"/>
+        <result column="submit_time" property="submitTime"/>
+        <result column="process_time" property="processTime"/>
+        <result column="approver_name" property="approverName"/>
+    </resultMap>
+
+    <sql id="ApplicationBaseColumns">
+        a.id,
+        a.applicant_user_id,
+        a.applicant_name,
+        a.application_type,
+        a.target_name,
+        a.reason,
+        a.status,
+        a.submit_time,
+        a.process_time,
+        a.approver_user_id,
+        a.approver_name,
+        a.review_remark,
+        a.created_by,
+        a.updated_by
+    </sql>
+
+    <sql id="ApplicationWhere">
+        a.deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND (a.applicant_name LIKE CONCAT('%', #{keyword}, '%') OR a.target_name LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="applicationType != null and applicationType != ''">
+            AND a.application_type = #{applicationType}
+        </if>
+        <if test="status != null">
+            AND a.status = #{status}
+        </if>
+    </sql>
+
+    <sql id="WorkflowWhere">
+        a.deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND (a.applicant_name LIKE CONCAT('%', #{keyword}, '%') OR a.target_name LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="applicationType != null and applicationType != ''">
+            AND a.application_type = #{applicationType}
+        </if>
+    </sql>
+
+    <select id="selectApplicationPage" resultMap="ApplicationPageItemMap">
+        SELECT
+            a.id,
+            a.applicant_user_id,
+            a.applicant_name,
+            a.application_type,
+            a.target_name,
+            a.status,
+            a.submit_time,
+            a.process_time,
+            a.approver_user_id,
+            a.approver_name,
+            (
+                SELECT COUNT(1)
+                FROM biz_attachment ba
+                WHERE ba.deleted = 0 AND ba.biz_type = 'application' AND ba.biz_id = a.id
+            ) AS attachment_count
+        FROM biz_application a
+        WHERE
+            <include refid="ApplicationWhere"/>
+        ORDER BY a.id DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countApplicationPage" resultType="long">
+        SELECT COUNT(1)
+        FROM biz_application a
+        WHERE
+            <include refid="ApplicationWhere"/>
+    </select>
+
+    <select id="selectApplicationDetailById" resultMap="ApplicationDetailMap">
+        SELECT
+            <include refid="ApplicationBaseColumns"/>
+        FROM biz_application a
+        WHERE a.id = #{id} AND a.deleted = 0
+    </select>
+
+    <select id="selectApplicationRecords" resultMap="ApplicationRecordMap">
+        SELECT
+            id,
+            step_no,
+            approver_id,
+            approver_name,
+            action_type,
+            CASE action_type
+                WHEN 'submit' THEN '提交申请'
+                WHEN 'approve' THEN '审核通过'
+                WHEN 'reject' THEN '审核驳回'
+                WHEN 'withdraw' THEN '撤回申请'
+                ELSE '流程处理'
+            END AS action_name,
+            comment_text,
+            before_status,
+            after_status,
+            acted_at
+        FROM biz_application_record
+        WHERE application_id = #{applicationId}
+        ORDER BY step_no ASC, id ASC
+    </select>
+
+    <select id="countApplicationRecords" resultType="long">
+        SELECT COUNT(1)
+        FROM biz_application_record
+        WHERE application_id = #{applicationId}
+    </select>
+
+    <select id="selectApplicationEntityById" resultMap="ApplicationEntityMap">
+        SELECT
+            <include refid="ApplicationBaseColumns"/>
+        FROM biz_application a
+        WHERE a.id = #{id} AND a.deleted = 0
+    </select>
+
+    <insert id="insertApplication" parameterType="com.xtu.system.modules.business.application.entity.ApplicationEntity" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO biz_application (
+            applicant_user_id,
+            applicant_name,
+            application_type,
+            target_name,
+            reason,
+            status,
+            approver_user_id,
+            approver_name,
+            review_remark,
+            created_by,
+            updated_by,
+            deleted,
+            version
+        ) VALUES (
+            #{applicantUserId},
+            #{applicantName},
+            #{applicationType},
+            #{targetName},
+            #{reason},
+            #{status},
+            #{approverUserId},
+            #{approverName},
+            #{reviewRemark},
+            #{createdBy},
+            #{updatedBy},
+            0,
+            0
+        )
+    </insert>
+
+    <insert id="insertApplicationRecord" parameterType="com.xtu.system.modules.business.application.entity.ApplicationRecordEntity" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO biz_application_record (
+            application_id,
+            step_no,
+            approver_id,
+            approver_name,
+            action_type,
+            comment_text,
+            before_status,
+            after_status,
+            acted_at
+        ) VALUES (
+            #{applicationId},
+            #{stepNo},
+            #{approverId},
+            #{approverName},
+            #{actionType},
+            #{commentText},
+            #{beforeStatus},
+            #{afterStatus},
+            NOW()
+        )
+    </insert>
+
+    <update id="updateApplication" parameterType="com.xtu.system.modules.business.application.entity.ApplicationEntity">
+        UPDATE biz_application
+        SET
+            applicant_user_id = #{applicantUserId},
+            applicant_name = #{applicantName},
+            application_type = #{applicationType},
+            target_name = #{targetName},
+            reason = #{reason},
+            updated_by = #{updatedBy},
+            updated_at = NOW(),
+            version = version + 1
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="logicDeleteApplication">
+        UPDATE biz_application
+        SET
+            deleted = 1,
+            updated_by = #{updatedBy},
+            updated_at = NOW(),
+            version = version + 1
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="submitApplication">
+        UPDATE biz_application
+        SET
+            submit_time = NOW(),
+            updated_by = #{updatedBy},
+            updated_at = NOW(),
+            version = version + 1
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="reviewApplication">
+        UPDATE biz_application
+        SET
+            status = #{status},
+            process_time = NOW(),
+            approver_user_id = #{approverUserId},
+            approver_name = #{approverName},
+            review_remark = #{reviewRemark},
+            updated_by = #{updatedBy},
+            updated_at = NOW(),
+            version = version + 1
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="withdrawApplication">
+        UPDATE biz_application
+        SET
+            status = #{status},
+            process_time = NOW(),
+            approver_user_id = #{approverUserId},
+            approver_name = #{approverName},
+            review_remark = #{reviewRemark},
+            updated_by = #{updatedBy},
+            updated_at = NOW(),
+            version = version + 1
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <select id="selectWorkflowTodo" resultMap="WorkflowTaskMap">
+        SELECT
+            a.id AS record_id,
+            a.id AS application_id,
+            a.applicant_name,
+            a.application_type,
+            a.target_name,
+            a.status,
+            a.submit_time,
+            a.process_time,
+            a.approver_name
+        FROM biz_application a
+        WHERE
+            <include refid="WorkflowWhere"/>
+            AND a.status = 0
+        ORDER BY a.submit_time DESC, a.id DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countWorkflowTodo" resultType="long">
+        SELECT COUNT(1)
+        FROM biz_application a
+        WHERE
+            <include refid="WorkflowWhere"/>
+            AND a.status = 0
+    </select>
+
+    <select id="selectWorkflowDone" resultMap="WorkflowTaskMap">
+        SELECT
+            a.id AS record_id,
+            a.id AS application_id,
+            a.applicant_name,
+            a.application_type,
+            a.target_name,
+            a.status,
+            a.submit_time,
+            a.process_time,
+            a.approver_name
+        FROM biz_application a
+        WHERE
+            <include refid="WorkflowWhere"/>
+            AND a.status != 0
+            AND a.approver_user_id = #{currentUserId}
+        ORDER BY a.process_time DESC, a.id DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countWorkflowDone" resultType="long">
+        SELECT COUNT(1)
+        FROM biz_application a
+        WHERE
+            <include refid="WorkflowWhere"/>
+            AND a.status != 0
+            AND a.approver_user_id = #{currentUserId}
+    </select>
+</mapper>

@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xtu.system.modules.business.course.mapper.CourseMapper">
+
+    <resultMap id="CourseEntityMap" type="com.xtu.system.modules.business.course.entity.CourseEntity">
+        <id column="id" property="id"/>
+        <result column="course_code" property="courseCode"/>
+        <result column="course_name" property="courseName"/>
+        <result column="dept_id" property="deptId"/>
+        <result column="dept_name" property="deptName"/>
+        <result column="teacher_id" property="teacherId"/>
+        <result column="teacher_name" property="teacherName"/>
+        <result column="credit" property="credit"/>
+        <result column="course_type" property="courseType"/>
+        <result column="semester" property="semester"/>
+        <result column="status" property="status"/>
+        <result column="remark" property="remark"/>
+        <result column="created_by" property="createdBy"/>
+        <result column="updated_by" property="updatedBy"/>
+    </resultMap>
+
+    <resultMap id="CoursePageItemMap" type="com.xtu.system.modules.business.course.vo.CoursePageItemVO">
+        <id column="id" property="id"/>
+        <result column="course_code" property="courseCode"/>
+        <result column="course_name" property="courseName"/>
+        <result column="dept_id" property="deptId"/>
+        <result column="dept_name" property="deptName"/>
+        <result column="teacher_id" property="teacherId"/>
+        <result column="teacher_name" property="teacherName"/>
+        <result column="credit" property="credit"/>
+        <result column="course_type" property="courseType"/>
+        <result column="semester" property="semester"/>
+        <result column="status" property="status"/>
+        <result column="attachment_count" property="attachmentCount"/>
+    </resultMap>
+
+    <resultMap id="CourseDetailMap" type="com.xtu.system.modules.business.course.vo.CourseDetailVO" extends="CoursePageItemMap">
+        <result column="remark" property="remark"/>
+    </resultMap>
+
+    <resultMap id="CourseOptionMap" type="com.xtu.system.modules.business.course.vo.CourseOptionVO">
+        <id column="id" property="id"/>
+        <result column="course_code" property="courseCode"/>
+        <result column="course_name" property="courseName"/>
+    </resultMap>
+
+    <sql id="CourseBaseColumns">
+        c.id,
+        c.course_code,
+        c.course_name,
+        c.dept_id,
+        d.dept_name,
+        c.teacher_id,
+        t.teacher_name,
+        c.credit,
+        c.course_type,
+        c.semester,
+        c.status,
+        c.remark,
+        c.created_by,
+        c.updated_by
+    </sql>
+
+    <sql id="CourseWhere">
+        c.deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND (c.course_code LIKE CONCAT('%', #{keyword}, '%') OR c.course_name LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="deptId != null">
+            AND c.dept_id = #{deptId}
+        </if>
+        <if test="status != null">
+            AND c.status = #{status}
+        </if>
+    </sql>
+
+    <select id="selectCoursePage" resultMap="CoursePageItemMap">
+        SELECT
+            c.id,
+            c.course_code,
+            c.course_name,
+            c.dept_id,
+            d.dept_name,
+            c.teacher_id,
+            t.teacher_name,
+            c.credit,
+            c.course_type,
+            c.semester,
+            c.status,
+            (
+                SELECT COUNT(1)
+                FROM biz_attachment ba
+                WHERE ba.deleted = 0 AND ba.biz_type = 'course' AND ba.biz_id = c.id
+            ) AS attachment_count
+        FROM biz_course c
+        LEFT JOIN sys_department d ON d.id = c.dept_id AND d.deleted = 0
+        LEFT JOIN biz_teacher t ON t.id = c.teacher_id AND t.deleted = 0
+        WHERE
+            <include refid="CourseWhere"/>
+        ORDER BY c.id DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countCoursePage" resultType="long">
+        SELECT COUNT(1)
+        FROM biz_course c
+        WHERE
+            <include refid="CourseWhere"/>
+    </select>
+
+    <select id="selectCourseDetailById" resultMap="CourseDetailMap">
+        SELECT
+            <include refid="CourseBaseColumns"/>
+        FROM biz_course c
+        LEFT JOIN sys_department d ON d.id = c.dept_id AND d.deleted = 0
+        LEFT JOIN biz_teacher t ON t.id = c.teacher_id AND t.deleted = 0
+        WHERE c.id = #{id} AND c.deleted = 0
+    </select>
+
+    <select id="selectCourseEntityById" resultMap="CourseEntityMap">
+        SELECT
+            <include refid="CourseBaseColumns"/>
+        FROM biz_course c
+        LEFT JOIN sys_department d ON d.id = c.dept_id AND d.deleted = 0
+        LEFT JOIN biz_teacher t ON t.id = c.teacher_id AND t.deleted = 0
+        WHERE c.id = #{id} AND c.deleted = 0
+    </select>
+
+    <select id="selectCourseEntityByCode" resultMap="CourseEntityMap">
+        SELECT
+            <include refid="CourseBaseColumns"/>
+        FROM biz_course c
+        LEFT JOIN sys_department d ON d.id = c.dept_id AND d.deleted = 0
+        LEFT JOIN biz_teacher t ON t.id = c.teacher_id AND t.deleted = 0
+        WHERE c.course_code = #{courseCode} AND c.deleted = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectCourseOptions" resultMap="CourseOptionMap">
+        SELECT
+            c.id,
+            c.course_code,
+            c.course_name
+        FROM biz_course c
+        WHERE c.deleted = 0 AND c.status = 1
+        ORDER BY c.course_name ASC, c.id ASC
+    </select>
+
+    <insert id="insertCourse" parameterType="com.xtu.system.modules.business.course.entity.CourseEntity" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO biz_course (
+            course_code,
+            course_name,
+            dept_id,
+            teacher_id,
+            credit,
+            course_type,
+            semester,
+            status,
+            remark,
+            created_by,
+            updated_by,
+            deleted,
+            version
+        ) VALUES (
+            #{courseCode},
+            #{courseName},
+            #{deptId},
+            #{teacherId},
+            #{credit},
+            #{courseType},
+            #{semester},
+            #{status},
+            #{remark},
+            #{createdBy},
+            #{updatedBy},
+            0,
+            0
+        )
+    </insert>
+
+    <update id="updateCourse" parameterType="com.xtu.system.modules.business.course.entity.CourseEntity">
+        UPDATE biz_course
+        SET
+            course_code = #{courseCode},
+            course_name = #{courseName},
+            dept_id = #{deptId},
+            teacher_id = #{teacherId},
+            credit = #{credit},
+            course_type = #{courseType},
+            semester = #{semester},
+            status = #{status},
+            remark = #{remark},
+            updated_by = #{updatedBy},
+            updated_at = NOW(),
+            version = version + 1
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="logicDeleteCourse">
+        UPDATE biz_course
+        SET
+            deleted = 1,
+            updated_by = #{updatedBy},
+            updated_at = NOW(),
+            version = version + 1
+        WHERE id = #{id} AND deleted = 0
+    </update>
+</mapper>
