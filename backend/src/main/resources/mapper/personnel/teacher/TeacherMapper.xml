@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xtu.system.modules.personnel.teacher.mapper.TeacherMapper">
+
+    <resultMap id="TeacherEntityMap" type="com.xtu.system.modules.personnel.teacher.entity.TeacherEntity">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="teacher_no" property="teacherNo"/>
+        <result column="teacher_name" property="teacherName"/>
+        <result column="gender" property="gender"/>
+        <result column="dept_id" property="deptId"/>
+        <result column="dept_name" property="deptName"/>
+        <result column="title_name" property="titleName"/>
+        <result column="phone" property="phone"/>
+        <result column="email" property="email"/>
+        <result column="status" property="status"/>
+        <result column="remark" property="remark"/>
+        <result column="created_by" property="createdBy"/>
+        <result column="updated_by" property="updatedBy"/>
+    </resultMap>
+
+    <resultMap id="TeacherPageItemMap" type="com.xtu.system.modules.personnel.teacher.vo.TeacherPageItemVO">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="teacher_no" property="teacherNo"/>
+        <result column="teacher_name" property="teacherName"/>
+        <result column="gender" property="gender"/>
+        <result column="dept_id" property="deptId"/>
+        <result column="dept_name" property="deptName"/>
+        <result column="title_name" property="titleName"/>
+        <result column="phone" property="phone"/>
+        <result column="email" property="email"/>
+        <result column="status" property="status"/>
+        <result column="account_username" property="accountUsername"/>
+        <result column="account_status" property="accountStatus"/>
+    </resultMap>
+
+    <resultMap id="TeacherDetailMap" type="com.xtu.system.modules.personnel.teacher.vo.TeacherDetailVO" extends="TeacherPageItemMap">
+        <result column="remark" property="remark"/>
+    </resultMap>
+
+    <sql id="TeacherBaseColumns">
+        t.id,
+        t.user_id,
+        t.teacher_no,
+        t.teacher_name,
+        t.gender,
+        t.dept_id,
+        d.dept_name,
+        t.title_name,
+        t.phone,
+        t.email,
+        t.status,
+        t.remark,
+        t.created_by,
+        t.updated_by
+    </sql>
+
+    <sql id="TeacherWhere">
+        t.deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND (t.teacher_no LIKE CONCAT('%', #{keyword}, '%') OR t.teacher_name LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="deptId != null">
+            AND t.dept_id = #{deptId}
+        </if>
+        <if test="status != null">
+            AND t.status = #{status}
+        </if>
+    </sql>
+
+    <select id="selectTeacherPage" resultMap="TeacherPageItemMap">
+        SELECT
+            t.id,
+            t.user_id,
+            t.teacher_no,
+            t.teacher_name,
+            t.gender,
+            t.dept_id,
+            d.dept_name,
+            t.title_name,
+            t.phone,
+            t.email,
+            t.status,
+            u.username AS account_username,
+            u.status AS account_status
+        FROM biz_teacher t
+        LEFT JOIN sys_department d ON d.id = t.dept_id AND d.deleted = 0
+        LEFT JOIN sys_user u ON u.id = t.user_id AND u.deleted = 0
+        WHERE
+            <include refid="TeacherWhere"/>
+        ORDER BY t.id DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="selectTeacherExportList" resultMap="TeacherPageItemMap">
+        SELECT
+            t.id,
+            t.user_id,
+            t.teacher_no,
+            t.teacher_name,
+            t.gender,
+            t.dept_id,
+            d.dept_name,
+            t.title_name,
+            t.phone,
+            t.email,
+            t.status,
+            u.username AS account_username,
+            u.status AS account_status
+        FROM biz_teacher t
+        LEFT JOIN sys_department d ON d.id = t.dept_id AND d.deleted = 0
+        LEFT JOIN sys_user u ON u.id = t.user_id AND u.deleted = 0
+        WHERE
+            <include refid="TeacherWhere"/>
+        ORDER BY t.id DESC
+    </select>
+
+    <select id="countTeacherPage" resultType="long">
+        SELECT COUNT(1)
+        FROM biz_teacher t
+        WHERE
+            <include refid="TeacherWhere"/>
+    </select>
+
+    <select id="selectTeacherDetailById" resultMap="TeacherDetailMap">
+        SELECT
+            <include refid="TeacherBaseColumns"/>,
+            u.username AS account_username,
+            u.status AS account_status
+        FROM biz_teacher t
+        LEFT JOIN sys_department d ON d.id = t.dept_id AND d.deleted = 0
+        LEFT JOIN sys_user u ON u.id = t.user_id AND u.deleted = 0
+        WHERE t.id = #{id} AND t.deleted = 0
+    </select>
+
+    <select id="selectTeacherEntityById" resultMap="TeacherEntityMap">
+        SELECT
+            <include refid="TeacherBaseColumns"/>
+        FROM biz_teacher t
+        LEFT JOIN sys_department d ON d.id = t.dept_id AND d.deleted = 0
+        WHERE t.id = #{id} AND t.deleted = 0
+    </select>
+
+    <select id="selectTeacherEntityByNo" resultMap="TeacherEntityMap">
+        SELECT
+            <include refid="TeacherBaseColumns"/>
+        FROM biz_teacher t
+        LEFT JOIN sys_department d ON d.id = t.dept_id AND d.deleted = 0
+        WHERE t.teacher_no = #{teacherNo} AND t.deleted = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectTeacherEntityByUserId" resultMap="TeacherEntityMap">
+        SELECT
+            <include refid="TeacherBaseColumns"/>
+        FROM biz_teacher t
+        LEFT JOIN sys_department d ON d.id = t.dept_id AND d.deleted = 0
+        WHERE t.user_id = #{userId} AND t.deleted = 0
+        LIMIT 1
+    </select>
+
+    <insert id="insertTeacher" parameterType="com.xtu.system.modules.personnel.teacher.entity.TeacherEntity" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO biz_teacher (
+            user_id,
+            teacher_no,
+            teacher_name,
+            gender,
+            dept_id,
+            title_name,
+            phone,
+            email,
+            status,
+            remark,
+            created_by,
+            updated_by,
+            deleted,
+            version
+        ) VALUES (
+            #{userId},
+            #{teacherNo},
+            #{teacherName},
+            #{gender},
+            #{deptId},
+            #{titleName},
+            #{phone},
+            #{email},
+            #{status},
+            #{remark},
+            #{createdBy},
+            #{updatedBy},
+            0,
+            0
+        )
+    </insert>
+
+    <update id="updateTeacher" parameterType="com.xtu.system.modules.personnel.teacher.entity.TeacherEntity">
+        UPDATE biz_teacher
+        SET
+            user_id = #{userId},
+            teacher_no = #{teacherNo},
+            teacher_name = #{teacherName},
+            gender = #{gender},
+            dept_id = #{deptId},
+            title_name = #{titleName},
+            phone = #{phone},
+            email = #{email},
+            status = #{status},
+            remark = #{remark},
+            updated_by = #{updatedBy},
+            updated_at = NOW(),
+            version = version + 1
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="logicDeleteTeacher">
+        UPDATE biz_teacher
+        SET
+            deleted = 1,
+            updated_by = #{updatedBy},
+            updated_at = NOW(),
+            version = version + 1
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="clearUserBindingByUserId">
+        UPDATE biz_teacher
+        SET
+            user_id = NULL,
+            updated_by = #{updatedBy},
+            updated_at = NOW(),
+            version = version + 1
+        WHERE user_id = #{userId} AND deleted = 0
+    </update>
+</mapper>
